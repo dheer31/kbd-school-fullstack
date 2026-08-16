@@ -1,0 +1,40 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+.Python
+.venv/
+venv/
+env/
+
+# Database files (don't copy SQLite into image)
+*.db
+*.sqlite
+*.sqlite3
+
+# Environment files (secrets must NEVER go in images)
+.env
+.env.*
+!.env.example
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# Docs & editor files
+*.md
+.vscode/
+.idea/
+*.DS_Store
+
+# Vercel-specific (not needed in Docker)
+vercel.json
+
+# Test & CI
+tests/
+.pytest_cache/
+.coverage
+htmlcov/

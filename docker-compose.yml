@@ -1,0 +1,67 @@
+services:
+
+  # ── PostgreSQL Database ──────────────────────────────────────────
+  db:
+    image: postgres:15-alpine
+    container_name: kbd_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER:     ${POSTGRES_USER:-kbd_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-kbd_pass}
+      POSTGRES_DB:       ${POSTGRES_DB:-kbd_school}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-kbd_user} -d ${POSTGRES_DB:-kbd_school}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - backend
+
+  # ── FastAPI Backend ──────────────────────────────────────────────
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: kbd_api
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-kbd_user}:${POSTGRES_PASSWORD:-kbd_pass}@db:5432/${POSTGRES_DB:-kbd_school}
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - backend
+      - frontend
+    # Expose only internally (nginx proxies to it — NOT directly public)
+    expose:
+      - "8000"
+
+  # ── Nginx Frontend + Reverse Proxy ──────────────────────────────
+  nginx:
+    build:
+      context: .
+      dockerfile: nginx/Dockerfile
+    container_name: kbd_nginx
+    restart: unless-stopped
+    ports:
+      - "${APP_PORT:-80}:80"
+    depends_on:
+      api:
+        condition: service_healthy
+    networks:
+      - frontend
+
+# ── Volumes ──────────────────────────────────────────────────────
+volumes:
+  postgres_data:
+    driver: local
+
+# ── Networks ─────────────────────────────────────────────────────
+networks:
+  backend:
+    driver: bridge
+  frontend:
+    driver: bridge
