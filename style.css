@@ -968,6 +968,9 @@ button { cursor: pointer; border: none; background: none; }
 .news-link { font-size: 0.85rem; font-weight: 700; color: var(--gold-dark); display: flex; align-items: center; gap: 0.4rem; transition: var(--transition); }
 .news-card.featured .news-link { color: var(--gold-light); }
 .news-link:hover { gap: 0.7rem; }
+.news-loading { text-align: center; padding: 2rem; color: var(--gray); font-size: 1rem; grid-column: 1 / -1; }
+.news-loading i { margin-right: 0.5rem; color: var(--gold); }
+.news-empty { text-align: center; padding: 2rem; color: var(--gray); font-style: italic; grid-column: 1 / -1; }
 
 /* ===== CONTACT ===== */
 .contact-section { background: var(--off-white); }

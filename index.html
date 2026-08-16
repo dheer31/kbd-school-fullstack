@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Playfair+Display:wght@600;700;800&family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
-  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="style.css?v=2" />
 </head>
 <body>
 
@@ -497,34 +497,10 @@
         <h2 class="section-title">News & Announcements</h2>
         <div class="section-divider"></div>
       </div>
-      <div class="news-grid">
-        <div class="news-card featured">
-          <div class="news-tag">Featured</div>
-          <div class="news-date"><i class="fas fa-calendar-alt"></i> August 15, 2025</div>
-          <h3>Independence Day Celebration 2025</h3>
-          <p>K.B.D. School celebrated India's 79th Independence Day with great patriotic fervor. Students performed cultural programs, flag hoisting, and march-past.</p>
-          <a href="#" class="news-link" id="news-independence-link">Read More <i class="fas fa-arrow-right"></i></a>
-        </div>
-        <div class="news-card">
-          <div class="news-tag new">New</div>
-          <div class="news-date"><i class="fas fa-calendar-alt"></i> July 28, 2025</div>
-          <h3>Admission Open for 2025-26</h3>
-          <p>Applications for the academic year 2025-26 are now open for all classes from 1 to 10. Limited seats available. Apply early!</p>
-          <a href="#admissions" class="news-link" id="news-admission-link">Apply Now <i class="fas fa-arrow-right"></i></a>
-        </div>
-        <div class="news-card">
-          <div class="news-tag">Upcoming</div>
-          <div class="news-date"><i class="fas fa-calendar-alt"></i> September 20, 2025</div>
-          <h3>Annual Sports Day 2025</h3>
-          <p>The Annual Sports Day will be held on September 20th. All students are encouraged to participate in various sporting events and competitions.</p>
-          <a href="#" class="news-link" id="news-sports-link">Learn More <i class="fas fa-arrow-right"></i></a>
-        </div>
-        <div class="news-card">
-          <div class="news-tag">Notice</div>
-          <div class="news-date"><i class="fas fa-calendar-alt"></i> August 25, 2025</div>
-          <h3>Parent-Teacher Meeting</h3>
-          <p>The quarterly Parent-Teacher Meeting is scheduled for August 25, 2025. All parents are requested to attend to discuss their child's progress.</p>
-          <a href="#" class="news-link" id="news-ptm-link">Details <i class="fas fa-arrow-right"></i></a>
+      <div class="news-grid" id="news-grid">
+        <!-- News cards are dynamically loaded from /api/news -->
+        <div class="news-loading" id="news-loading">
+          <i class="fas fa-spinner fa-spin"></i> Loading news&hellip;
         </div>
       </div>
     </div>
@@ -653,7 +629,7 @@
     <div class="lightbox-content" id="lightbox-content"></div>
   </div>
 
-  <script src="script.js"></script>
+  <script src="script.js?v=2"></script>
 </body>
 </html>
 

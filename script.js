@@ -385,10 +385,74 @@ async function loadFaculty() {
   }
 }
 
-// Load API events + faculty when DOM is ready
+// ===== NEWS FROM API =====
+async function loadNews() {
+  const grid = document.getElementById('news-grid');
+  const loading = document.getElementById('news-loading');
+  if (!grid) return;
+
+  // Tag colour map — matches CSS .news-tag variants
+  const tagClass = {
+    featured : 'featured',
+    new      : 'new',
+    upcoming : '',
+    notice   : '',
+  };
+
+  try {
+    const res = await fetch(`${API_BASE}/api/news`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const { data: items } = await res.json();
+
+    if (loading) loading.remove();
+
+    if (!items || items.length === 0) {
+      grid.innerHTML = '<p class="news-empty">No news items yet.</p>';
+      return;
+    }
+
+    grid.innerHTML = items.map(item => {
+      const cls = item.is_featured ? 'news-card featured' : 'news-card';
+      const tagKey = (item.tag || '').toLowerCase();
+      const tagCls = tagClass[tagKey] !== undefined ? tagClass[tagKey] : '';
+      const tagHTML = tagCls
+        ? `<div class="news-tag ${tagCls}">${item.tag}</div>`
+        : `<div class="news-tag">${item.tag}</div>`;
+      const dateHTML = item.date
+        ? `<div class="news-date"><i class="fas fa-calendar-alt"></i> ${item.date}</div>`
+        : '';
+      const link = item.link || '#';
+      const linkText = item.link_text || 'Read More';
+      return `
+        <div class="${cls}">
+          ${tagHTML}
+          ${dateHTML}
+          <h3>${item.title}</h3>
+          <p>${item.description || ''}</p>
+          <a href="${link}" class="news-link">${linkText} <i class="fas fa-arrow-right"></i></a>
+        </div>`;
+    }).join('');
+
+    // Re-apply reveal animation to new cards
+    grid.querySelectorAll('.news-card').forEach((el, i) => {
+      el.classList.add('reveal');
+      el.style.transitionDelay = `${i * 0.07}s`;
+      const rect = el.getBoundingClientRect();
+      if (rect.top < window.innerHeight - 80) el.classList.add('visible');
+    });
+
+  } catch (err) {
+    console.warn('Could not load news from API:', err.message);
+    if (loading) loading.innerHTML =
+      '<i class="fas fa-exclamation-circle"></i> Could not load news.';
+  }
+}
+
+// Load API events + faculty + news when DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
   loadEventsFromAPI();
   loadFaculty();
+  loadNews();
 });
 
 

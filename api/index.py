@@ -57,6 +57,42 @@ class EventCreate(SQLModel):
     date: Optional[str] = None
 
 
+# ── NewsItem Table ────────────────────────────────────────────────────────────
+class NewsItem(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    tag: str = Field(default="News")          # e.g. "Featured", "New", "Upcoming", "Notice"
+    title: str
+    description: Optional[str] = None
+    date: Optional[str] = None                # e.g. "August 15, 2025"
+    link: Optional[str] = Field(default="#")  # href for the card button
+    link_text: Optional[str] = Field(default="Read More")  # button label
+    is_featured: bool = Field(default=False)  # featured card gets dark background
+    sort_order: int = Field(default=99)
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+class NewsItemCreate(SQLModel):
+    tag: str = "News"
+    title: str
+    description: Optional[str] = None
+    date: Optional[str] = None
+    link: Optional[str] = "#"
+    link_text: Optional[str] = "Read More"
+    is_featured: bool = False
+    sort_order: int = 99
+
+
+class NewsItemUpdate(SQLModel):
+    tag: Optional[str] = None
+    title: Optional[str] = None
+    description: Optional[str] = None
+    date: Optional[str] = None
+    link: Optional[str] = None
+    link_text: Optional[str] = None
+    is_featured: Optional[bool] = None
+    sort_order: Optional[int] = None
+
+
 # ── Faculty Table ──────────────────────────────────────────────────────────────
 class Faculty(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
@@ -94,6 +130,50 @@ class FacultyUpdate(SQLModel):
 
 
 # ── Seed Data ─────────────────────────────────────────────────────────────────
+DEFAULT_NEWS = [
+    NewsItemCreate(
+        tag="Featured",
+        title="Independence Day Celebration 2025",
+        description="K.B.D. School celebrated India's 79th Independence Day with great patriotic fervor. Students performed cultural programs, flag hoisting, and march-past.",
+        date="August 15, 2025",
+        link="#",
+        link_text="Read More",
+        is_featured=True,
+        sort_order=1,
+    ),
+    NewsItemCreate(
+        tag="New",
+        title="Admission Open for 2025-26",
+        description="Applications for the academic year 2025-26 are now open for all classes from 1 to 10. Limited seats available. Apply early!",
+        date="July 28, 2025",
+        link="#admissions",
+        link_text="Apply Now",
+        is_featured=False,
+        sort_order=2,
+    ),
+    NewsItemCreate(
+        tag="Upcoming",
+        title="Annual Sports Day 2025",
+        description="The Annual Sports Day will be held on September 20th. All students are encouraged to participate in various sporting events and competitions.",
+        date="September 20, 2025",
+        link="#",
+        link_text="Learn More",
+        is_featured=False,
+        sort_order=3,
+    ),
+    NewsItemCreate(
+        tag="Notice",
+        title="Parent-Teacher Meeting",
+        description="The quarterly Parent-Teacher Meeting is scheduled for August 25, 2025. All parents are requested to attend to discuss their child's progress.",
+        date="August 25, 2025",
+        link="#",
+        link_text="Details",
+        is_featured=False,
+        sort_order=4,
+    ),
+]
+
+
 DEFAULT_FACULTY = [
     FacultyCreate(
         name="Mr. Raghavendra Ashrit",
@@ -160,12 +240,23 @@ def seed_faculty(session: Session):
     session.commit()
 
 
+def seed_news(session: Session):
+    """Insert default news items only if table is empty."""
+    existing = session.exec(select(NewsItem)).first()
+    if existing:
+        return
+    for n in DEFAULT_NEWS:
+        session.add(NewsItem(**n.dict()))
+    session.commit()
+
+
 # ── Lifespan (startup hook) ────────────────────────────────────────────────────
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     SQLModel.metadata.create_all(engine)
     with Session(engine) as session:
         seed_faculty(session)
+        seed_news(session)
     yield
 
 
@@ -332,3 +423,62 @@ def delete_faculty(faculty_id: int):
         session.commit()
         return {"ok": True, "message": f"Faculty #{faculty_id} deleted"}
 
+
+# ── News Routes ────────────────────────────────────────────────────────────────
+@app.get("/api/news", tags=["News"])
+def list_news():
+    """List all news items sorted by sort_order."""
+    with Session(engine) as session:
+        items = session.exec(
+            select(NewsItem).order_by(NewsItem.sort_order, NewsItem.id)
+        ).all()
+        return {"total": len(items), "data": items}
+
+
+@app.get("/api/news/{news_id}", tags=["News"])
+def get_news(news_id: int):
+    """Get a single news item by ID."""
+    with Session(engine) as session:
+        item = session.get(NewsItem, news_id)
+        if not item:
+            raise HTTPException(status_code=404, detail="News item not found")
+        return item
+
+
+@app.post("/api/news", status_code=201, tags=["News"])
+def create_news(news: NewsItemCreate):
+    """Create a new news/announcement item."""
+    with Session(engine) as session:
+        db_item = NewsItem(**news.dict())
+        session.add(db_item)
+        session.commit()
+        session.refresh(db_item)
+        return db_item
+
+
+@app.put("/api/news/{news_id}", tags=["News"])
+def update_news(news_id: int, news: NewsItemUpdate):
+    """Update an existing news item (partial update supported)."""
+    with Session(engine) as session:
+        db_item = session.get(NewsItem, news_id)
+        if not db_item:
+            raise HTTPException(status_code=404, detail="News item not found")
+        update_data = news.dict(exclude_unset=True)
+        for key, value in update_data.items():
+            setattr(db_item, key, value)
+        session.add(db_item)
+        session.commit()
+        session.refresh(db_item)
+        return db_item
+
+
+@app.delete("/api/news/{news_id}", tags=["News"])
+def delete_news(news_id: int):
+    """Delete a news item."""
+    with Session(engine) as session:
+        db_item = session.get(NewsItem, news_id)
+        if not db_item:
+            raise HTTPException(status_code=404, detail="News item not found")
+        session.delete(db_item)
+        session.commit()
+        return {"ok": True, "message": f"News item #{news_id} deleted"}
