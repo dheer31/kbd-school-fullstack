@@ -278,17 +278,9 @@ async function loadEventsFromAPI() {
       item.className = 'gallery-item';
       item.setAttribute('data-category', event.category || 'events');
 
-      if (event.image_url) {
-        item.innerHTML = `
-          <img src="${event.image_url}" alt="${event.title}" />
-          <div class="gallery-overlay">
-            <i class="fas fa-expand"></i>
-            <span>${event.title}</span>
-          </div>`;
-      } else {
-        const bg = categoryColors[event.category] || categoryColors.events;
-        const icon = categoryIcons[event.category] || 'fa-star';
-        item.innerHTML = `
+      const bg   = categoryColors[event.category] || categoryColors.events;
+      const icon = categoryIcons[event.category]  || 'fa-star';
+      const placeholderHTML = `
           <div class="gallery-placeholder" style="background: ${bg};">
             <i class="fas ${icon}"></i>
             <span>${event.title}</span>
@@ -297,6 +289,22 @@ async function loadEventsFromAPI() {
             <i class="fas fa-expand"></i>
             <span>${event.title}${event.date ? ' — ' + event.date : ''}</span>
           </div>`;
+
+      if (event.image_url) {
+        item.innerHTML = `
+          <img src="${event.image_url}" alt="${event.title}" />
+          <div class="gallery-overlay">
+            <i class="fas fa-expand"></i>
+            <span>${event.title}</span>
+          </div>`;
+
+        // If the image URL is broken, fall back to the styled placeholder
+        const img = item.querySelector('img');
+        img.addEventListener('error', () => {
+          item.innerHTML = placeholderHTML;
+        });
+      } else {
+        item.innerHTML = placeholderHTML;
       }
 
       // Add lightbox click
@@ -389,6 +397,7 @@ async function loadFaculty() {
 async function loadNews() {
   const grid = document.getElementById('news-grid');
   const loading = document.getElementById('news-loading');
+  const tickerContent = document.getElementById('ticker-content');
   if (!grid) return;
 
   // Tag colour map — matches CSS .news-tag variants
@@ -397,6 +406,14 @@ async function loadNews() {
     new      : 'new',
     upcoming : '',
     notice   : '',
+  };
+
+  // Icon map for ticker
+  const tagIcon = {
+    featured : 'fas fa-star',
+    new      : 'fas fa-bullhorn',
+    upcoming : 'fas fa-calendar-alt',
+    notice   : 'fas fa-clipboard-list',
   };
 
   try {
@@ -408,9 +425,14 @@ async function loadNews() {
 
     if (!items || items.length === 0) {
       grid.innerHTML = '<p class="news-empty">No news items yet.</p>';
+      // Restore fallback ticker
+      if (tickerContent) {
+        tickerContent.innerHTML = '<span><i class="fas fa-bell"></i> No announcements at this time.</span>';
+      }
       return;
     }
 
+    // ── Update news cards ─────────────────────────────────────────────────────
     grid.innerHTML = items.map(item => {
       const cls = item.is_featured ? 'news-card featured' : 'news-card';
       const tagKey = (item.tag || '').toLowerCase();
@@ -441,10 +463,33 @@ async function loadNews() {
       if (rect.top < window.innerHeight - 80) el.classList.add('visible');
     });
 
+    // ── Update top ticker bar ──────────────────────────────────────────────────
+    if (tickerContent) {
+      // Build spans; duplicate them so the CSS marquee loops seamlessly
+      const spanHTML = items.map(item => {
+        const tagKey = (item.tag || '').toLowerCase();
+        const icon = tagIcon[tagKey] || 'fas fa-info-circle';
+        const dateStr = item.date ? ` — ${item.date}` : '';
+        return `<span><i class="${icon}"></i> ${item.title}${dateStr}</span>`;
+      }).join('');
+      // Duplicate for seamless loop
+      tickerContent.innerHTML = spanHTML + spanHTML;
+    }
+
   } catch (err) {
     console.warn('Could not load news from API:', err.message);
     if (loading) loading.innerHTML =
       '<i class="fas fa-exclamation-circle"></i> Could not load news.';
+    // Restore fallback ticker on error
+    if (tickerContent) {
+      tickerContent.innerHTML = [
+        '<span><i class="fas fa-bullhorn"></i> Admission Open 2025-26 &mdash; Apply Now!</span>',
+        '<span><i class="fas fa-trophy"></i> Annual Sports Day &mdash; September 20, 2025</span>',
+        '<span><i class="fas fa-flag"></i> Independence Day Celebration &mdash; All students participate</span>',
+        '<span><i class="fas fa-clipboard-list"></i> Parent-Teacher Meeting &mdash; 25th August 2025</span>',
+      ].join('');
+      tickerContent.innerHTML += tickerContent.innerHTML; // duplicate for loop
+    }
   }
 }
 
@@ -477,13 +522,13 @@ document.querySelectorAll('a[href^="#"]').forEach(anchor => {
 });
 
 // ===== TICKER PAUSE ON HOVER =====
-const tickerContent = document.querySelector('.ticker-content');
-if (tickerContent) {
-  tickerContent.addEventListener('mouseenter', () => {
-    tickerContent.style.animationPlayState = 'paused';
+const tickerEl = document.getElementById('ticker-content');
+if (tickerEl) {
+  tickerEl.addEventListener('mouseenter', () => {
+    tickerEl.style.animationPlayState = 'paused';
   });
-  tickerContent.addEventListener('mouseleave', () => {
-    tickerContent.style.animationPlayState = 'running';
+  tickerEl.addEventListener('mouseleave', () => {
+    tickerEl.style.animationPlayState = 'running';
   });
 }
 
